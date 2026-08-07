@@ -1,0 +1,63 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "agrimind-ai",
+    "title": "AGRIMIND AI Quality & Safety",
+    "tags": ["agrimind", "ai", "safety"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "type": "stat",
+        "title": "Avg Confidence Score",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "targets": [{"expr": "avg(agrimind_agent_confidence_score)", "legendFormat": "confidence"}]
+      },
+      {
+        "id": 2,
+        "type": "stat",
+        "title": "Safety Violations (24h)",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+        "targets": [{"expr": "sum(increase(agrimind_safety_violations_total[24h]))", "legendFormat": "violations"}]
+      },
+      {
+        "id": 3,
+        "type": "stat",
+        "title": "Retrieval Hit Rate",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "targets": [{"expr": "sum(rate(agrimind_retrieval_hits_total[5m])) / sum(rate(agrimind_retrieval_requests_total[5m])) * 100", "legendFormat": "%"}]
+      },
+      {
+        "id": 4,
+        "type": "stat",
+        "title": "Low Confidence Fallbacks",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "targets": [{"expr": "sum(increase(agrimind_fallback_total[1h]))", "legendFormat": "count"}]
+      },
+      {
+        "id": 5,
+        "type": "timeseries",
+        "title": "Confidence Distribution by Language",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "targets": [
+          {"expr": "avg(agrimind_agent_confidence_score{lang=\"en\"})", "legendFormat": "English"},
+          {"expr": "avg(agrimind_agent_confidence_score{lang=\"hi\"})", "legendFormat": "Hindi"},
+          {"expr": "avg(agrimind_agent_confidence_score{lang=\"mr\"})", "legendFormat": "Marathi"}
+        ]
+      },
+      {
+        "id": 6,
+        "type": "timeseries",
+        "title": "Safety Events Over Time",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "targets": [
+          {"expr": "rate(agrimind_safety_violations_total[5m])", "legendFormat": "Violations"},
+          {"expr": "rate(agrimind_blocked_responses_total[5m])", "legendFormat": "Blocked"}
+        ]
+      }
+    ]
+  }
+}

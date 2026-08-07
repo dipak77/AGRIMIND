@@ -1,0 +1,64 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "agrimind-system",
+    "title": "AGRIMIND System Overview",
+    "tags": ["agrimind", "system"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "type": "stat",
+        "title": "Total Requests",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "targets": [{"expr": "sum(rate(http_requests_total[5m]))", "legendFormat": "req/s"}]
+      },
+      {
+        "id": 2,
+        "type": "stat",
+        "title": "Avg Latency (p95)",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+        "targets": [{"expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))", "legendFormat": "p95"}]
+      },
+      {
+        "id": 3,
+        "type": "stat",
+        "title": "Error Rate",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "targets": [{"expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m])) * 100", "legendFormat": "%"}]
+      },
+      {
+        "id": 4,
+        "type": "stat",
+        "title": "Active Services",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "targets": [{"expr": "count(up{job=~\"agrimind.*\"} == 1)", "legendFormat": "services"}]
+      },
+      {
+        "id": 5,
+        "type": "timeseries",
+        "title": "Request Rate by Service",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "targets": [
+          {"expr": "rate(http_requests_total{job=\"agrimind-gateway\"}[5m])", "legendFormat": "Gateway"},
+          {"expr": "rate(http_requests_total{job=\"agrimind-assistant\"}[5m])", "legendFormat": "Assistant"},
+          {"expr": "rate(http_requests_total{job=\"agrimind-orchestrator\"}[5m])", "legendFormat": "Orchestrator"}
+        ]
+      },
+      {
+        "id": 6,
+        "type": "timeseries",
+        "title": "Latency Distribution",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "targets": [
+          {"expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket[5m]))", "legendFormat": "p50"},
+          {"expr": "histogram_quantile(0.90, rate(http_request_duration_seconds_bucket[5m]))", "legendFormat": "p90"},
+          {"expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))", "legendFormat": "p99"}
+        ]
+      }
+    ]
+  }
+}
