@@ -1,0 +1,56 @@
+[importlinter]
+root_packages = agrimind
+
+# Layer architecture enforcement
+# Allowed: kernel <- data-kernel <- memory <- models <- agents <- services <- apps
+# Forbidden: Any upward import cycles
+
+[[importlinter.contracts]]
+name = "Layer architecture - no upward imports"
+type = "layers"
+containers = ["packages"]
+layers = [
+    "kernel",
+    "data-kernel",
+    "memory",
+    "models",
+    "agents",
+    "eval",
+]
+ignore_imports = []
+
+[[importlinter.contracts]]
+name = "Kernel must have no dependencies on other packages"
+type = "forbidden"
+source_modules = [
+    "agrimind.packages.kernel",
+]
+forbidden_modules = [
+    "agrimind.packages.data-kernel",
+    "agrimind.packages.memory",
+    "agrimind.packages.models",
+    "agrimind.packages.agents",
+    "agrimind.packages.eval",
+    "agrimind.services",
+    "agrimind.workers",
+]
+
+[[importlinter.contracts]]
+name = "Services cannot import other services"
+type = "forbidden"
+source_modules = [
+    "agrimind.services",
+]
+forbidden_modules = [
+    "agrimind.services.gateway-service",
+    "agrimind.services.assistant-api",
+    "agrimind.services.agent-orchestrator",
+    "agrimind.services.memory-service",
+    "agrimind.services.inference-service",
+    "agrimind.services.vision-service",
+    "agrimind.services.feeds-service",
+    "agrimind.services.data-ingestion-service",
+    "agrimind.services.eval-service",
+    "agrimind.services.expert-console-api",
+    "agrimind.services.admin-service",
+]

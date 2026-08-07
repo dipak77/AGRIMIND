@@ -1,0 +1,13 @@
+{
+  "dashboard": {
+    "title": "AGRIMIND AI Quality Metrics",
+    "panels": [
+      {"title": "Model Confidence Distribution", "type": "histogram"},
+      {"title": "Safety Violations", "type": "stat"},
+      {"title": "Retrieval Hit Rate", "type": "gauge"},
+      {"title": "Hallucination Flags", "type": "graph"},
+      {"title": "Language Distribution (En/Hi/Mr)", "type": "piechart"}
+    ],
+    "refresh": "1m"
+  }
+}

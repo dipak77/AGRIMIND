@@ -1,0 +1,12 @@
+{
+  "dashboard": {
+    "title": "AGRIMIND System Health",
+    "panels": [
+      {"title": "Request Rate", "type": "graph"},
+      {"title": "Error Rate", "type": "graph"},
+      {"title": "Latency p95", "type": "graph"},
+      {"title": "Service Status", "type": "stat"}
+    ],
+    "refresh": "30s"
+  }
+}

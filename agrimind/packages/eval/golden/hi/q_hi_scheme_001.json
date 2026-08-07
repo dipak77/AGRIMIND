@@ -1,0 +1,12 @@
+{
+  "id": "q_hi_scheme_001",
+  "lang": "hi",
+  "query": "किसान सम्मान निधि योजना के लिए कैसे आवेदन करें?",
+  "expected_intent": "scheme_guidance",
+  "expected_entities": ["PM-KISAN", "government_scheme"],
+  "expected_graph_path": ["GovernmentScheme -ELIGIBILITY-> ..."],
+  "must_cite": true,
+  "safety_level": "legal_scheme",
+  "expected_answer_contains": ["आवेदन", "पात्रता", "दस्तावेज़"],
+  "forbidden_tokens": []
+}

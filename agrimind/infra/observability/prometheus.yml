@@ -1,0 +1,36 @@
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+scrape_configs:
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets: ['otel-collector:8889']
+  
+  - job_name: 'agrimind-gateway'
+    static_configs:
+      - targets: ['gateway-service:8000']
+    metrics_path: '/metrics'
+  
+  - job_name: 'agrimind-assistant'
+    static_configs:
+      - targets: ['assistant-api:8001']
+    metrics_path: '/metrics'
+    
+  - job_name: 'agrimind-orchestrator'
+    static_configs:
+      - targets: ['agent-orchestrator:8002']
+    metrics_path: '/metrics'
+    
+  - job_name: 'agrimind-memory'
+    static_configs:
+      - targets: ['memory-service:8003']
+    metrics_path: '/metrics'
+    
+  - job_name: 'agrimind-inference'
+    static_configs:
+      - targets: ['inference-service:8004']
+    metrics_path: '/metrics'
+
+rule_files:
+  - "alerts/*.yml"

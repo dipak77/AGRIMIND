@@ -1,0 +1,245 @@
+version: "3.9"
+
+services:
+  # ---------------------------------------------------------------------------
+  # CORE DATA STORES
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: agrimind
+      POSTGRES_PASSWORD: agrimind_secret_123
+      POSTGRES_DB: agrimind
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agrimind"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:RELEASE.2024-01-01T16-36-33Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin_secret
+    ports: ["9000:9000", "9001:9001"]
+    volumes: [miniodata:/data]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  neo4j:
+    image: neo4j:5.21-community
+    environment:
+      NEO4J_AUTH: neo4j/agrimind_graph_secret
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_auth__enabled: "false"
+    ports: ["7474:7474", "7687:7687"]
+    volumes: [neo4jdata:/data]
+    healthcheck:
+      test: ["CMD", "neo4j-admin", "dbms", "list-databases"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:v1.11.0
+    ports: ["6333:6333", "6334:6334"]
+    volumes: [qdrantdata:/qdrant/storage]
+    environment:
+      QDRANT__SERVICE__GRPC_PORT: "6334"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    command: redis-server --appendonly yes
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # ORCHESTRATION & OBSERVABILITY
+  # ---------------------------------------------------------------------------
+  temporal:
+    image: temporalio/auto-setup:1.24.1
+    ports: ["7233:7233", "8233:8233"]
+    environment:
+      - DB=sqlite
+      - DB_FILENAME=/tmp/temporal.db
+    volumes: [temporaldata:/tmp]
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "localhost:7233", "namespace", "describe", "--namespace", "default"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.95.0
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./infra/observability/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8889:8889"
+    depends_on:
+      - jaeger
+      - prometheus
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.55
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"
+      - "14250:14250"
+
+  prometheus:
+    image: prom/prometheus:v2.50.1
+    volumes:
+      - ./infra/observability/prometheus.yml:/etc/prometheus/prometheus.yml
+      - promdata:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports: ["9090:9090"]
+    depends_on: [otel-collector]
+
+  grafana:
+    image: grafana/grafana:10.3.4
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafanadata:/var/lib/grafana
+      - ./infra/observability/dashboards:/etc/grafana/provisioning/dashboards
+      - ./infra/observability/datasources:/etc/grafana/provisioning/datasources
+    ports: ["3000:3000"]
+    depends_on: [prometheus, loki]
+
+  loki:
+    image: grafana/loki:2.9.3
+    command: -config.file=/etc/loki/local-config.yaml
+    ports: ["3100:3100"]
+    volumes: [lokidata:/loki]
+
+  # ---------------------------------------------------------------------------
+  # APPLICATION SERVICES
+  # ---------------------------------------------------------------------------
+  gateway-service:
+    build:
+      context: .
+      dockerfile: services/gateway-service/Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes: [.:/app]
+    ports: ["8000:8000"]
+    environment:
+      - ENV=local
+      - REDIS_URL=redis://redis:6379/0
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+    depends_on: [redis, otel-collector]
+
+  assistant-api:
+    build:
+      context: .
+      dockerfile: services/assistant-api/Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+    volumes: [.:/app]
+    ports: ["8001:8001"]
+    environment:
+      - ENV=local
+      - AGENT_ORCHESTRATOR_URL=http://agent-orchestrator:8002
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+    depends_on: [agent-orchestrator]
+
+  agent-orchestrator:
+    build:
+      context: .
+      dockerfile: services/agent-orchestrator/Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
+    volumes: [.:/app]
+    ports: ["8002:8002"]
+    environment:
+      - ENV=local
+      - MEMORY_SERVICE_URL=http://memory-service:8003
+      - INFERENCE_SERVICE_URL=http://inference-service:8004
+      - NEO4J_URI=bolt://neo4j:7687
+      - QDRANT_URL=http://qdrant:6333
+    depends_on: [memory-service, inference-service]
+
+  memory-service:
+    build:
+      context: .
+      dockerfile: services/memory-service/Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8003 --reload
+    volumes: [.:/app]
+    ports: ["8003:8003"]
+    environment:
+      - ENV=local
+      - NEO4J_URI=bolt://neo4j:7687
+      - QDRANT_URL=http://qdrant:6333
+    depends_on: [neo4j, qdrant]
+
+  inference-service:
+    build:
+      context: .
+      dockerfile: services/inference-service/Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8004 --reload
+    volumes: [.:/app]
+    ports: ["8004:8004"]
+    environment:
+      - ENV=local
+      - MODEL_REGISTRY_PATH=s3://agrimind-models
+      - MINIO_ENDPOINT=http://minio:9000
+    depends_on: [minio]
+
+  # ---------------------------------------------------------------------------
+  # WORKERS
+  # ---------------------------------------------------------------------------
+  curation-worker:
+    build:
+      context: .
+      dockerfile: workers/curation-worker/Dockerfile
+    command: python -m app.worker
+    volumes: [.:/app]
+    environment:
+      - ENV=local
+      - TEMPORAL_ADDRESS=temporal:7233
+      - MINIO_ENDPOINT=http://minio:9000
+      - POSTGRES_DSN=postgresql+asyncpg://agrimind:agrimind_secret_123@postgres:5432/agrimind
+    depends_on: [temporal, minio, postgres]
+
+  training-orchestrator:
+    build:
+      context: .
+      dockerfile: workers/training-orchestrator/Dockerfile
+    command: python -m app.worker
+    volumes: [.:/app]
+    environment:
+      - ENV=local
+      - TEMPORAL_ADDRESS=temporal:7233
+      - MINIO_ENDPOINT=http://minio:9000
+    depends_on: [temporal, minio]
+
+volumes:
+  pgdata:
+  miniodata:
+  neo4jdata:
+  qdrantdata:
+  redisdata:
+  temporaldata:
+  promdata:
+  grafanadata:
+  lokidata:

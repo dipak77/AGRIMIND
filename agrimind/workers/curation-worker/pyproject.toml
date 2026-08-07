@@ -1,0 +1,17 @@
+[project]
+name = "curation-worker"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "temporalio>=1.5.0",
+    "pydantic>=2.8.0",
+    "structlog>=24.0.0",
+    "httpx>=0.27.0",
+    "agrimind-kernel",
+    "agrimind-data-kernel",
+]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+[tool.hatch.build.targets.wheel]
+packages = ["."]

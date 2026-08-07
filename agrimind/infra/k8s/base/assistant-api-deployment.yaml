@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assistant-api
+  namespace: agrimind
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: assistant-api
+  template:
+    metadata:
+      labels:
+        app: assistant-api
+    spec:
+      containers:
+        - name: assistant-api
+          image: agrimind/assistant-api:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: agrimind-config
+            - secretRef:
+                name: agrimind-secrets
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: assistant-api
+  namespace: agrimind
+spec:
+  selector:
+    app: assistant-api
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: ClusterIP
