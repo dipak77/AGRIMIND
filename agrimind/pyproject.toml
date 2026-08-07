@@ -16,6 +16,10 @@ members = [
 
 [tool.uv.sources]
 agrimind-kernel = { workspace = true }
+agrimind-models = { workspace = true }
+data-kernel = { workspace = true }
+memory = { workspace = true }
+eval = { workspace = true }
 
 [tool.uv]
 package = false

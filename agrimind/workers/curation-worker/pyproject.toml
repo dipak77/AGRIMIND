@@ -8,7 +8,7 @@ dependencies = [
     "structlog>=24.0.0",
     "httpx>=0.27.0",
     "agrimind-kernel",
-    "agrimind-data-kernel",
+    "data-kernel",
 ]
 [build-system]
 requires = ["hatchling"]
