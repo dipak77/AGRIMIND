@@ -3,14 +3,14 @@
 Implements multiple retrieval modes with citation enforcement.
 """
 
-from typing import Optional, Literal
-from pydantic import BaseModel, Field
-from datetime import datetime
-from enum import Enum
 import uuid
+from datetime import datetime
+from enum import StrEnum
+
+from pydantic import BaseModel, Field
 
 
-class RetrievalMode(str, Enum):
+class RetrievalMode(StrEnum):
     """Retrieval mode selection."""
     GRAPH = "graph"
     VECTOR = "vector"
@@ -21,7 +21,7 @@ class RetrievalMode(str, Enum):
 
 class ChunkWithCitation(BaseModel):
     """Retrieved chunk with citation metadata."""
-    
+
     chunk_id: str
     content: str
     score: float
@@ -36,7 +36,7 @@ class ChunkWithCitation(BaseModel):
 
 class GraphPathResult(BaseModel):
     """Result from graph traversal."""
-    
+
     path_id: str
     start_node: str
     end_node: str
@@ -45,14 +45,14 @@ class GraphPathResult(BaseModel):
     confidence: float
     citations: list[str]
     is_approved: bool = True
-    
+
     class Config:
         arbitrary_types_allowed = True
 
 
 class RetrievalTrace(BaseModel):
     """Trace of retrieval operations for observability."""
-    
+
     trace_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     mode: RetrievalMode
     query: str
@@ -70,7 +70,7 @@ class RetrievalTrace(BaseModel):
 
 class RetrievalRequest(BaseModel):
     """Request for retrieval operation."""
-    
+
     request_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     query: str
     lang: str
@@ -80,28 +80,28 @@ class RetrievalRequest(BaseModel):
     require_citations: bool = True
     min_confidence: float = 0.7
     include_trace: bool = True
-    
+
     class Config:
         arbitrary_types_allowed = True
 
 
 class RetrievalResult(BaseModel):
     """Result from retrieval operation."""
-    
+
     request_id: str
     query: str
     chunks: list[ChunkWithCitation] = Field(default_factory=list)
     graph_paths: list[GraphPathResult] = Field(default_factory=list)
     confidence: float = 0.0
-    trace: Optional[RetrievalTrace] = None
+    trace: RetrievalTrace | None = None
     has_citations: bool = True
     requires_approval: bool = False
-    
+
     @property
     def result_count(self) -> int:
         """Total number of results."""
         return len(self.chunks) + len(self.graph_paths)
-    
+
     def has_high_risk_content(self) -> bool:
         """Check if results contain high-risk content requiring approval."""
         for chunk in self.chunks:
@@ -111,14 +111,14 @@ class RetrievalResult(BaseModel):
             if not path.is_approved:
                 return True
         return False
-    
+
     class Config:
         arbitrary_types_allowed = True
 
 
 class RetrievalConfig(BaseModel):
     """Configuration for retrieval service."""
-    
+
     default_mode: RetrievalMode = RetrievalMode.HYBRID
     default_top_k: int = 8
     max_top_k: int = 50
@@ -132,6 +132,6 @@ class RetrievalConfig(BaseModel):
     reranker_model: str = "cross-encoder-multilingual"
     timeout_ms: int = 3000
     p95_latency_target_ms: float = 300.0
-    
+
     class Config:
         frozen = True

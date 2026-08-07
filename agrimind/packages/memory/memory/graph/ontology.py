@@ -1,12 +1,12 @@
 """Agricultural Knowledge Graph Ontology."""
 
-from enum import Enum
-from typing import Optional
-from pydantic import BaseModel, Field
 from datetime import datetime
+from enum import StrEnum
+
+from pydantic import BaseModel, Field
 
 
-class NodeType(str, Enum):
+class NodeType(StrEnum):
     CROP = "Crop"
     DISEASE = "Disease"
     PEST = "Pest"
@@ -28,7 +28,7 @@ class NodeType(str, Enum):
     ALIAS_MR = "AliasMr"
 
 
-class RelationshipType(str, Enum):
+class RelationshipType(StrEnum):
     AFFECTED_BY = "AFFECTED_BY"
     HAS_SYMPTOM = "HAS_SYMPTOM"
     TREATED_BY = "TREATED_BY"
@@ -150,12 +150,12 @@ class GraphNode(BaseModel):
     source_id: str
     checksum: str
     confidence: float = 1.0
-    valid_from: Optional[datetime] = None
-    valid_to: Optional[datetime] = None
+    valid_from: datetime | None = None
+    valid_to: datetime | None = None
     requires_approval: bool = False
     approved: bool = False
-    approved_by: Optional[str] = None
-    approved_at: Optional[datetime] = None
+    approved_by: str | None = None
+    approved_at: datetime | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -177,12 +177,12 @@ class GraphRelationship(BaseModel):
     source_id: str
     checksum: str
     confidence: float = 1.0
-    valid_from: Optional[datetime] = None
-    valid_to: Optional[datetime] = None
+    valid_from: datetime | None = None
+    valid_to: datetime | None = None
     requires_approval: bool = False
     approved: bool = False
-    approved_by: Optional[str] = None
-    approved_at: Optional[datetime] = None
+    approved_by: str | None = None
+    approved_at: datetime | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 

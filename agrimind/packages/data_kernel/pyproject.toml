@@ -6,6 +6,8 @@ dependencies = [
     "agrimind-kernel",
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
+    "requests>=2.31.0",
+    "urllib3>=2.0.0",
 ]
 
 [build-system]
@@ -19,6 +21,7 @@ packages = ["data_kernel"]
 python_version = "3.12"
 strict = true
 warn_return_any = true
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 pythonpath = ["../..", "."]
