@@ -1,0 +1,36 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+  
+  - job_name: 'gateway-service'
+    static_configs:
+      - targets: ['gateway-service:8000']
+  
+  - job_name: 'assistant-api'
+    static_configs:
+      - targets: ['assistant-api:8001']
+  
+  - job_name: 'agent-orchestrator'
+    static_configs:
+      - targets: ['agent-orchestrator:8003']
+  
+  - job_name: 'memory-service'
+    static_configs:
+      - targets: ['memory-service:8004']
+  
+  - job_name: 'inference-service'
+    static_configs:
+      - targets: ['inference-service:8005']
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+rule_files:
+  - "alerts/*.yml"

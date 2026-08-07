@@ -1,40 +1,9 @@
 ```
 # Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
-.ENV
-.venv.bak/
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.log
-*.pot
-*.pyc
-*.pyo
-*.pyd
-.MF
+*.py[cod]
+*$py.class
 *.so
-*.egg-info/
-.installed.cfg
-*.egg
-.eggs/
-.pytest_cache/
-.mypy_cache/
-.hypothesis/
-
-# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -51,103 +20,61 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
-# PyInstaller
-*.manifest
-*.spec
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-
-# Translations
-*.mo
-*.pot
-
-# Django
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Flask
-instance/
-.webassets-cache
-
-# Scrapy
-.scrapy
-
-# Sphinx
-docs/_build/
-
-# PyBuilder
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
-
-# pyenv
-.python-version
-
-# pipenv
-Pipfile.lock
-
-# PEP 582
-__pypackages__/
-
-# Celery
-celerybeat-schedule
-celerybeat.pid
-
-# Sage
-*.sage.py
-
-# Environments
-.env
-.venv
-env/
+# Virtual environments
 venv/
 ENV/
 env.bak/
-venv.bak/
+.venv/
 
-# Spyder project settings
-.spyderproject
-.spyproject
+# Project-specific virtual envs
+agrimind/venv/
+agrimind/.venv/
 
-# Rope project settings
-.ropeproject
+# Dependencies
+node_modules/
+julia-*/
+zig*/
 
-# mkdocs documentation
-/site
+# Testing
+.coverage
+coverage/
+htmlcov/
+.nyc_output/
+coverage-final.json
 
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Pyre
-.pyre/
+# Environment variables
+.env
+.env.local
+.env.*
+!.env.example
 
-# IDE
+# IDE and editor files
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
-# OS
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+
+# Build and distribution
+target/
+.mypy_cache/
+.pytest_cache/
+.tox/
+.hypothesis/
 ```
