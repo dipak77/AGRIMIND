@@ -1,0 +1,85 @@
+# Patch to reduce resource requests for local development
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway-service
+spec:
+  template:
+    spec:
+      containers:
+        - name: gateway
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assistant-api
+spec:
+  template:
+    spec:
+      containers:
+        - name: assistant-api
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-orchestrator
+spec:
+  template:
+    spec:
+      containers:
+        - name: agent-orchestrator
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memory-service
+spec:
+  template:
+    spec:
+      containers:
+        - name: memory-service
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inference-service
+spec:
+  template:
+    spec:
+      containers:
+        - name: inference-service
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "1000m"
+            limits:
+              memory: "2Gi"
+              cpu: "2000m"

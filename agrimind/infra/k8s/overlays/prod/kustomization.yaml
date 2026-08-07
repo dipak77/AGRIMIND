@@ -1,0 +1,39 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: agrimind-prod
+
+commonLabels:
+  environment: production
+
+# Production images with specific tags
+images:
+  - name: agrimind/gateway-service
+    newTag: v1.0.0
+  - name: agrimind/assistant-api
+    newTag: v1.0.0
+  - name: agrimind/agent-orchestrator
+    newTag: v1.0.0
+  - name: agrimind/memory-service
+    newTag: v1.0.0
+  - name: agrimind/inference-service
+    newTag: v1.0.0
+
+# Production secrets reference (managed externally)
+secretGenerator:
+  - name: agrimind-secrets
+    envs:
+      - .env.production
+    type: Opaque
+
+# HPA for auto-scaling
+patchesStrategicMerge:
+  - hpa-gateway.yaml
+  - hpa-assistant-api.yaml
+
+# Pod Disruption Budgets
+  - pdb-gateway.yaml
+  - pdb-assistant-api.yaml

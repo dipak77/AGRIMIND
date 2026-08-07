@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agrimind-config
+  namespace: agrimind
+data:
+  ENV: "production"
+  POSTGRES_HOST: "postgres.agrimind.svc.cluster.local"
+  POSTGRES_PORT: "5432"
+  MINIO_ENDPOINT: "http://minio.agrimind.svc.cluster.local:9000"
+  NEO4J_URI: "bolt://neo4j.agrimind.svc.cluster.local:7687"
+  QDRANT_URL: "http://qdrant.agrimind.svc.cluster.local:6333"
+  REDIS_URL: "redis://redis.agrimind.svc.cluster.local:6379/0"
+  TEMPORAL_ADDRESS: "temporal.agrimind.svc.cluster.local:7233"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.agrimind.svc.cluster.local:4317"
+  LOG_LEVEL: "info"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: agrimind-secrets
+  namespace: agrimind
+type: Opaque
+stringData:
+  POSTGRES_USER: "agrimind"
+  POSTGRES_PASSWORD: "CHANGE_ME_IN_PROD"
+  MINIO_ACCESS_KEY: "minioadmin"
+  MINIO_SECRET_KEY: "CHANGE_ME_IN_PROD"
+  NEO4J_USER: "neo4j"
+  NEO4J_PASSWORD: "CHANGE_ME_IN_PROD"
+  JWT_SECRET: "CHANGE_ME_IN_PROD"

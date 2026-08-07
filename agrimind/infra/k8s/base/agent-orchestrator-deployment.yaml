@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-orchestrator
+  namespace: agrimind
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: agent-orchestrator
+  template:
+    metadata:
+      labels:
+        app: agent-orchestrator
+    spec:
+      containers:
+        - name: agent-orchestrator
+          image: agrimind/agent-orchestrator:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: agrimind-config
+            - secretRef:
+                name: agrimind-secrets
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "1000m"
+            limits:
+              memory: "2Gi"
+              cpu: "2000m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-orchestrator
+  namespace: agrimind
+spec:
+  selector:
+    app: agent-orchestrator
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: ClusterIP

@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - gateway-deployment.yaml
+  - assistant-api-deployment.yaml
+  - agent-orchestrator-deployment.yaml
+  - memory-service-deployment.yaml
+  - inference-service-deployment.yaml
+  - services.yaml
+
+commonLabels:
+  app.kubernetes.io/name: agrimind
+  app.kubernetes.io/managed-by: kustomize
