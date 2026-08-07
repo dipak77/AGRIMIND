@@ -75,7 +75,7 @@ class TestQuery:
     def test_query_multilingual_marathi(self):
         """Test Marathi query."""
         query = Query(
-            text="कपाशीवर बोंडअळी आली आहे, काय करावे?",
+            text="αñòαñ¬αñ╛αñ╢αÑÇαñ╡αñ░ αñ¼αÑïαñéαñíαñàαñ│αÑÇ αñåαñ▓αÑÇ αñåαñ╣αÑç, αñòαñ╛αñ» αñòαñ░αñ╛αñ╡αÑç?",
             lang="mr",
             user_id="farmer_789",
         )
@@ -85,7 +85,7 @@ class TestQuery:
     def test_query_multilingual_hindi(self):
         """Test Hindi query."""
         query = Query(
-            text="कपासी में इल्ली लग गई है, क्या करें?",
+            text="αñòαñ¬αñ╛αñ╕αÑÇ αñ«αÑçαñé αñçαñ▓αÑìαñ▓αÑÇ αñ▓αñù αñùαñê αñ╣αÑê, αñòαÑìαñ»αñ╛ αñòαñ░αÑçαñé?",
             lang="hi",
             user_id="farmer_101",
         )
@@ -309,12 +309,12 @@ class TestGetSafetyLevelForQuery:
 
     def test_treatment_query_marathi(self):
         """Test treatment query in Marathi."""
-        level = get_safety_level_for_query("बोंडअळी नियंत्रण काय करावे?")
+        level = get_safety_level_for_query("αñ¼αÑïαñéαñíαñàαñ│αÑÇ αñ¿αñ┐αñ»αñéαññαÑìαñ░αñú αñòαñ╛αñ» αñòαñ░αñ╛αñ╡αÑç?")
         assert level == SafetyLevel.PEST_TREATMENT
 
     def test_scheme_query_hindi(self):
         """Test government scheme query in Hindi."""
-        level = get_safety_level_for_query("सरकारी योजना क्या है?")
+        level = get_safety_level_for_query("αñ╕αñ░αñòαñ╛αñ░αÑÇ αñ»αÑïαñ£αñ¿αñ╛ αñòαÑìαñ»αñ╛ αñ╣αÑê?")
         assert level == SafetyLevel.LEGAL_SCHEME
 
     def test_weather_query(self):

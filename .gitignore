@@ -1,7 +1,7 @@
-```
-# Dependencies
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 *.pyo
 *.pyd
 .Python
@@ -16,9 +16,20 @@ pyproject.toml.bak
 
 # Build artifacts
 build/
+develop-eggs/
 dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
 *.egg
 *.egg-info/
+.installed.cfg
 *.so
 *.dylib
 *.dll
@@ -26,11 +37,12 @@ dist/
 
 # Testing
 .coverage
-htmlcov/
 .coverage.*
+htmlcov/
 .cache
 .pytest_cache/
 .hypothesis/
+coverage/
 
 # Logs
 *.log
@@ -44,10 +56,10 @@ htmlcov/
 ehthumbs.db
 Thumbs.db
 
-# Editor specific
+# Editor / IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-```
+*.tmp
