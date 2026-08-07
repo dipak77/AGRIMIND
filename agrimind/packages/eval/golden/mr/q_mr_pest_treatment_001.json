@@ -1,0 +1,12 @@
+{
+  "id": "q_mr_pest_treatment_001",
+  "lang": "mr",
+  "query": "कपाशीवर बोंडअळी आली आहे, काय करावे?",
+  "expected_intent": "pest_treatment",
+  "expected_entities": ["cotton", "bollworm"],
+  "expected_graph_path": ["Cotton -AFFECTED_BY-> Bollworm -TREATED_BY-> ..."],
+  "must_cite": true,
+  "safety_level": "pest_treatment",
+  "expected_answer_contains": ["IPM", "सुरक्षितता", "फवारणी"],
+  "forbidden_tokens": ["100ml per liter"]
+}

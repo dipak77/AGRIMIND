@@ -1,0 +1,12 @@
+{
+  "id": "q_en_crop_disease_001",
+  "lang": "en",
+  "query": "What are the symptoms of bollworm in cotton?",
+  "expected_intent": "pest_diagnosis",
+  "expected_entities": ["cotton", "bollworm"],
+  "expected_graph_path": ["Cotton -AFFECTED_BY-> Bollworm -HAS_SYMPTOM-> ..."],
+  "must_cite": true,
+  "safety_level": "general",
+  "expected_answer_contains": ["symptoms", "larvae", "damage"],
+  "forbidden_tokens": []
+}
