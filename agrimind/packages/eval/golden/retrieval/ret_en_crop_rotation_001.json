@@ -1,0 +1,14 @@
+{
+  "id": "ret_en_crop_rotation_001",
+  "lang": "en",
+  "query": "crop rotation soil health cereals",
+  "mode": "hybrid",
+  "must_have_graph_path": true,
+  "expected_path_contains": ["rotation"],
+  "expected_chunk_contains": ["rotation"],
+  "must_have_citations": true,
+  "forbidden_terms": ["monocrotophos", "ddt"],
+  "min_confidence": 0.55,
+  "max_confidence": 0.95,
+  "p95_latency_ms_budget": 300
+}

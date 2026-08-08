@@ -7,6 +7,22 @@
 **Languages:** English, Hindi, Marathi  
 **Primary Goal:** Build an autonomous, self-learning, self-improving, production-grade agricultural intelligence platform with a defensible AI moat.
 
+| Field | Value |
+|---|---|
+| **Revision** | 2026-08-08 — DAQ as-built + **full infra / repository map** |
+| **Status** | Living plan (architecture + implemented paths) |
+| **Related** | `agrimind/infra/`, `agrimind/docs/`, `frontend/data-acquisition/`, `env/` |
+
+### Revision history (recent)
+
+| Date | Summary |
+|---|---|
+| 2026-08-08b | **Infra restored in plan**: k8s/observability/vLLM maps, full repo tree with use-comments, deploy/runtime flow graphs (§8, §27) |
+| 2026-08-08 | Phase 2 DAQ: demo vs **real** mode, `run_id` lakehouse, EN/HI/MR discovery, failure reports, cleanup, Windows start scripts |
+| (prior) | Baseline flagship architecture plan (phases 0–7, flywheel, eval gates) |
+
+> **Why infrastructure looked “missed”:** the previous plan revision focused on the **Data Acquisition Plane** (§26). Infra already exists under `agrimind/infra/` (K8s, Prometheus/Grafana/Loki/OTEL, vLLM) and `docker-compose*.yml`, but was only a one-line stub in §8. This revision documents it fully.
+
 ---
 
 ### 1. Executive Vision
@@ -79,18 +95,22 @@ The platform must achieve:
 
 #### 3.2 System-Facing Capabilities
 
-- Autonomous data ingestion from approved sources
+- Autonomous data ingestion from approved sources (**demo vs real** isolation)
+- **Keyword discovery EN/HI/MR** over Wikipedia, FAO, Archive, Open Library, India/US gov portals
 - PDF, web, RSS, Wikipedia, JSON, image, audio, and structured dataset processing
+- **run_id-scoped process folders** with stage logs, job snapshots, partial corpus, failure reports
 - PII redaction
-- License and source governance
+- License and source governance (allow-list + trust scoring)
 - Duplicate detection
 - Language filtering
 - Agriculture relevance scoring
+- Toxicity filter (agri-aware; crop terms like oilseed rape not false-blocked)
 - Knowledge graph construction
 - Vector retrieval construction
 - Synthetic training data generation
 - Model evaluation, fine-tuning, canary deployment, automatic rollback
 - Expert review console
+- **DAQ operator UI** + cleanup/reset for disk hygiene
 
 ---
 
@@ -247,69 +267,197 @@ Any upward import cycle is FORBIDDEN
 
 ---
 
-### 8. From-Scratch Repository Layout
+### 8. Repository Layout (as-built) — structure + short “use” comments
+
+> **Legend:** each line ends with `# use: …` — why the folder exists and when to touch it.
 
 ```text
-agrimind/
-├── pyproject.toml              # uv workspace root
-├── Makefile
-├── docker-compose.yml
-├── .env.example
-├── README.md
-├── ADRs/
-│   └── 001-monorepo-layering.md
-├── packages/
-│   ├── kernel/
-│   │   ├── contracts/          # Query, Response, Citation, Safety
-│   │   ├── config/
-│   │   ├── errors/
-│   │   └── telemetry/
-│   ├── data-kernel/
-│   │   ├── manifests/
-│   │   └── lakehouse/
-│   ├── memory/
-│   │   ├── graph/
-│   │   ├── vector/
-│   │   └── retrieval/
-│   ├── models/
-│   │   ├── tokenizer/
-│   │   ├── inference/
-│   │   └── registry/
-│   ├── agents/
-│   │   ├── graphs/
-│   │   ├── tools/
-│   │   └── safety/
-│   └── eval/
-│       ├── golden/
-│       │   ├── en/
-│       │   ├── hi/
-│       │   └── mr/
-│       └── harness/
-├── services/
-│   ├── gateway-service/
-│   ├── assistant-api/
-│   ├── agent-orchestrator/
-│   ├── memory-service/
-│   ├── inference-service/
-│   ├── vision-service/
-│   ├── feeds-service/
-│   ├── data-ingestion-service/
-│   ├── eval-service/
-│   ├── expert-console-api/
-│   └── admin-service/
-├── workers/
-│   ├── curation-worker/
-│   └── training-orchestrator/
-├── infra/
-│   ├── temporal/
-│   └── k8s/
-└── tests/
-    ├── unit/
-    ├── contract/
-    ├── integration/
-    ├── retrieval/
-    ├── safety/
-    └── load/
+AGRIMIND/                                   # monorepo root (git)
+│
+├── AGRIMIND_Implementation_Plan.md         # use: master architecture + as-built status
+├── README.md                               # use: top-level onboarding
+├── start-daq-backend.bat                   # use: start data-ingestion-service (local/dev env)
+├── start-daq-frontend.bat                  # use: start DAQ Vite UI
+├── start-daq-all.bat                       # use: open both API + UI windows
+├── cleanup-daq-data.bat                    # use: dry-run / delete run folders + legacy lakehouse
+│
+├── env/                                    # use: Windows env packs for DAQ launchers
+│   ├── daq.local.env.bat                   # use: OBJECT_STORE=local, port 8017 (default laptop)
+│   ├── daq.dev.env.bat                     # use: OBJECT_STORE=auto (try MinIO)
+│   └── README.md                           # use: how to pick env
+│
+├── frontend/                               # use: operator/web UIs (not Python monorepo)
+│   └── data-acquisition/                   # use: Phase-2 DAQ console (discover/ingest/QA)
+│       ├── src/                            # use: React app (modes, runs, corpus, reports)
+│       ├── vite.config.ts                  # use: proxy /api → 127.0.0.1:8017
+│       └── package.json                    # use: npm run dev | build
+│
+└── agrimind/                               # use: Python uv workspace (packages + services)
+    ├── pyproject.toml                      # use: workspace members, shared tooling
+    ├── uv.lock                             # use: reproducible Python deps
+    ├── Makefile                            # use: sync / lint / test / compose shortcuts
+    ├── docker-compose.yml                  # use: local infra — Postgres, MinIO, Neo4j, Qdrant, Redis, Temporal
+    ├── docker-compose.vllm.yml             # use: optional GPU vLLM stack for remote inference
+    ├── .env.example                        # use: copy to .env; secrets + service URLs
+    ├── .github/workflows/                  # use: CI (lint/test/gates)
+    ├── ADRs/                               # use: architecture decision records
+    │   └── 001-monorepo-layering.md        # use: import layer rules
+    │
+    ├── data/                               # use: runtime generated data (gitignored bulk)
+    │   ├── runs/{run_id}/                  # use: ONE acquisition process (demo|real)
+    │   │   ├── meta.json                   # use: run header + stats
+    │   │   ├── process.jsonl               # use: stage/job event log
+    │   │   ├── jobs/*.json                 # use: job snapshots for restart/audit
+    │   │   ├── reports/fail-*.json         # use: partial/failure tracking reports
+    │   │   └── lakehouse/{objects,tables}  # use: isolated corpus for that run only
+    │   ├── lakehouse/                      # use: legacy shared lake (prefer runs/; cleanup-able)
+    │   └── source_cache/                   # use: trusted PDF cache (FAO/wiki books) for real mode
+    │
+    ├── docs/                               # use: feature design docs
+    │   ├── OIDC.md                         # use: auth / IdP integration notes
+    │   └── data-discovery-improvement-plan/ # use: discovery design + IMPLEMENTATION_STATUS
+    │
+    ├── packages/                           # use: reusable libraries (import by layer)
+    │   ├── agrimind-kernel/                # use: contracts, settings, safety, OIDC, feedback, telemetry
+    │   ├── data_kernel/                    # use: DAQ pipeline + discovery + lakehouse writer
+    │   │   └── data_kernel/
+    │   │       ├── sources/                # use: allow-list, keyword discovery EN/HI/MR, connectors
+    │   │       ├── pipeline/               # use: ingest stages, download, PII, toxicity, quality
+    │   │       └── lakehouse/              # use: JSONL tables + object store writes
+    │   ├── memory/                         # use: GraphRAG, Qdrant/vector, retrieval, cache
+    │   ├── models/                         # use: inference backends, registry, canary gates
+    │   ├── agents/                         # use: LangGraph graphs + tool clients
+    │   ├── eval/                           # use: golden sets en/hi/mr + harness
+    │   └── _legacy_kernel_removed/         # use: archived legacy kernel (do not import)
+    │
+    ├── services/                           # use: FastAPI microservices (one process each)
+    │   ├── gateway-service/                # use: edge auth, rate limit, route to APIs
+    │   ├── assistant-api/                  # use: farmer-facing query API
+    │   ├── agent-orchestrator/             # use: LangGraph orchestration
+    │   ├── memory-service/                 # use: retrieval / graph / seed APIs
+    │   ├── inference-service/              # use: LLM/vLLM/local backends
+    │   ├── vision-service/                 # use: crop image diagnosis path
+    │   ├── feeds-service/                  # use: weather/market/satellite feeds
+    │   ├── data-ingestion-service/         # use: DAQ API — ingest, runs, discovery, cleanup, QA
+    │   ├── eval-service/                   # use: evaluation APIs
+    │   ├── expert-console-api/             # use: expert correction / HITL
+    │   └── admin-service/                  # use: admin ops APIs
+    │
+    ├── workers/                            # use: async/Temporal workers (not HTTP)
+    │   ├── curation-worker/                # use: Temporal Ingest/Curation/Index workflows
+    │   └── training-orchestrator/          # use: training / flywheel jobs
+    │
+    ├── scripts/                            # use: operator CLIs (not libraries)
+    │   ├── discover_agri_sources.py        # use: EN/HI/MR discovery from shell
+    │   ├── run_real_ingest.ps1             # use: catalog/discover → parallel ingest
+    │   ├── smoke_vllm.ps1 / .sh            # use: verify vLLM OpenAI endpoint
+    │
+    ├── infra/                              # use: deploy + observe (not application logic)
+    │   ├── k8s/
+    │   │   ├── base/                       # use: core Deployments/Services/ConfigMap (Kustomize base)
+    │   │   └── overlays/
+    │   │       ├── local/                  # use: low-resource patches for laptop/dev cluster
+    │   │       ├── prod/                   # use: production kustomization
+    │   │       └── gpu/                    # use: vLLM GPU Deployment patch
+    │   ├── observability/
+    │   │   ├── prometheus.yml              # use: scrape configs for services
+    │   │   ├── otel-collector-config.yaml  # use: OTLP → metrics/traces/logs pipeline
+    │   │   ├── loki-config.yaml            # use: log aggregation
+    │   │   ├── datasources/                # use: Grafana datasource provisioning
+    │   │   ├── dashboards/                 # use: system + AI quality Grafana JSONs
+    │   │   └── alerts/                     # use: Prometheus alert rules
+    │   └── vllm/
+    │       └── README.md                   # use: GPU compose / HF model / INFERENCE_MODE=remote
+    │
+    └── tests/                              # use: pytest suites (TDD gates)
+        ├── unit/                           # use: fast pure logic (discovery, runs, safety…)
+        ├── contract/                       # use: API schema contracts
+        ├── retrieval/                      # use: golden retrieval
+        ├── safety/                         # use: adversarial / safety engine
+        └── load/                           # use: basic load smoke
+```
+
+#### 8.1 Layer → folder flow (what depends on what)
+
+```mermaid
+flowchart TB
+  subgraph Apps["Apps / UIs"]
+    FE[frontend/data-acquisition]
+    BAT[start-daq-*.bat / env/]
+  end
+  subgraph HTTP["services/* HTTP"]
+    GW[gateway-service]
+    DAQ[data-ingestion-service]
+    AST[assistant-api]
+    ORCH[agent-orchestrator]
+    MEM[memory-service]
+    INF[inference-service]
+  end
+  subgraph Lib["packages/* libraries"]
+    K[agrimind-kernel]
+    DK[data_kernel]
+    M[memory]
+    MD[models]
+    AG[agents]
+    EV[eval]
+  end
+  subgraph Work["workers/*"]
+    CW[curation-worker Temporal]
+    TO[training-orchestrator]
+  end
+  subgraph Infra["infra/* + compose"]
+    DC[docker-compose.yml]
+    K8S[infra/k8s]
+    OBS[infra/observability]
+    VLLM[infra/vllm + docker-compose.vllm.yml]
+  end
+  subgraph Data["data/* runtime"]
+    RUNS[runs/run_id]
+    CACHE[source_cache]
+  end
+
+  BAT --> DAQ
+  FE --> DAQ
+  FE --> AST
+  GW --> AST
+  GW --> ORCH
+  AST --> ORCH
+  ORCH --> MEM
+  ORCH --> INF
+  ORCH --> AG
+  DAQ --> DK
+  DAQ --> K
+  DK --> K
+  M --> K
+  MD --> K
+  AG --> M
+  AG --> MD
+  CW --> DK
+  TO --> MD
+  DAQ --> RUNS
+  DAQ --> CACHE
+  INF --> VLLM
+  K8S --> GW
+  K8S --> AST
+  K8S --> ORCH
+  K8S --> MEM
+  K8S --> INF
+  DC --> OBS
+  HTTP --> OBS
+```
+
+#### 8.2 Runtime data flow (DAQ process)
+
+```mermaid
+flowchart LR
+  Op[Operator] --> UI[DAQ UI]
+  UI -->|POST ingest/batch discover| API[data-ingestion-service]
+  API -->|create run_id| FS[data/runs/run_id]
+  API -->|stages 1-13| Pipe[data_kernel IngestPipeline]
+  Pipe -->|raw/curated objects| FS
+  Pipe -->|JSONL tables| FS
+  API -->|partial corpus / fail report| UI
+  API -->|cleanup| FS
 ```
 
 ---
@@ -382,10 +530,18 @@ eval:
 
 ```env
 ENV=local
-POSTGRES_DSN=postgresql+asyncpg://agrimind:agrimind@localhost:5432/agrimind
+POSTGRES_DSN=postgresql://agrimind:agrimind_secret_123@localhost:5432/agrimind
 MINIO_ENDPOINT=http://localhost:9000
 MINIO_ACCESS_KEY=minioadmin
-MINIO_SECRET_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin_secret
+# DAQ object store: local | auto | minio
+OBJECT_STORE=local
+LAKEHOUSE_ROOT=./data/lakehouse
+# Prefer local FS when MinIO down (avoids probe spam)
+# DATA_ROOT defaults to parent of LAKEHOUSE_ROOT → data/runs/{run_id}
+SKIP_ROBOTS=true
+INDEX_ON_INGEST=false
+INGEST_WORKERS=4
 NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
 NEO4J_PASSWORD=agrimind123
@@ -545,50 +701,120 @@ class Response(BaseModel):
 
 #### Phase 2 — Data Acquisition Plane
 
-**Objective:** Build the pre-stage autonomous data lake.
+**Objective:** Build the pre-stage autonomous data lake with **trusted open-source discovery**, **demo/real isolation**, and **run-scoped process visibility**.
+
+**Implementation status (2026-08):** **Largely complete** for local/real ingest path + DAQ UI. Temporal remains optional (`mode=auto` falls back to local pipeline). See **§26** for full as-built detail.
 
 **Data Sources:**
 
-| Source Type | Example |
-|---|---|
-| Web | approved agricultural websites (ICAR, agri dept) |
-| PDF | agronomy manuals, scheme documents |
-| Wikipedia | agriculture pages in en/hi/mr |
-| RSS | agricultural news and advisories |
-| JSON | open data APIs |
-| Image | crop disease photos |
-| Audio | farmer voice samples |
-| Structured | soil, weather, market tables |
+| Source Type | Example | Mode |
+|---|---|---|
+| Web | ICAR, agri.gov, USDA NRCS, CGIAR portals | **real** only |
+| PDF | FAO OA papers, Archive.org agri books, Wikipedia PDF export | **real** |
+| Wikipedia | MediaWiki extracts **en / hi / mr** | **real** |
+| RSS / JSON | agricultural feeds / open APIs | planned + partial |
+| Image / Audio | crop photos / farmer voice | structure ready; ASR later |
+| Inline mock | `example.com` samples for QA | **demo** only |
 
-**Data Pipeline Stages:**
+**Hard rule — demo vs real**
+
+| Rule | DEMO | REAL |
+|---|---|---|
+| `example.com` / inline mock content | Allowed | **Forbidden** |
+| Trusted allow-list hosts only | Soft | **Required** |
+| Storage root | `data/runs/demo-*` | `data/runs/real-*` |
+| QA demo batch API | Yes | Never mixed into real lakehouse |
+
+**Data Pipeline Stages (implemented in `IngestPipeline`):**
 ```
 1. Source Discovery (allow-list check)
 2. robots.txt + License validation
-3. Download (with size limit, retry, checksum)
+3. Download (size limit, retry, checksum; Archive metadata PDF resolve)
 4. Unicode Normalization + Language Detection
 5. PII Redaction
-6. Toxicity/Safety Filter
-7. Agriculture Relevance Scoring (classifier)
+6. Toxicity/Safety Filter (agri-aware; oilseed rape not blocked)
+7. Agriculture Relevance Scoring
 8. Deduplication (exact + near - MinHash)
 9. Quality Scoring
 10. Provenance Attachment (source_id, checksum, license)
-11. Raw Write (MinIO immutable)
-12. Curated Write (Iceberg/Parquet)
+11. Raw Write (immutable object + JSONL)
+12. Curated Write + chunks table
 13. Quarantine on failure
++ Index (optional Qdrant) + Dataset manifest
 ```
 
-**Temporal Workflow Design:**
+**Keyword discovery (EN / HI / MR) — as-built**
+
+| Component | Path |
+|---|---|
+| Allow-list + trust + seed catalog | `packages/data_kernel/data_kernel/sources/discovery.py` |
+| Multilingual auto-discovery | `packages/data_kernel/data_kernel/sources/keyword_discovery_service.py` |
+| Category taxonomy discovery | `packages/data_kernel/data_kernel/sources/online_discovery.py` |
+| Connectors (web/pdf/wiki/rss) | `packages/data_kernel/data_kernel/sources/connectors.py` |
+| Design notes | `docs/data-discovery-improvement-plan/` |
+
+**Live search adapters:** Wikipedia (en/hi/mr), Open Library, Internet Archive (metadata PDF resolve), FAO curated PDFs, portal seeds (USDA/ICAR/India gov).
+
+**run_id process foundation**
+
+```text
+data/runs/{run_id}/
+  meta.json              # mode, stats, status
+  process.jsonl          # stage/job events
+  jobs/{job_id}.json     # job snapshots
+  reports/fail-*.json    # failure / partial reports
+  lakehouse/
+    objects/             # raw + curated blobs
+    tables/*.jsonl       # per-run lake tables
 ```
-IngestWorkflow -> CurationWorkflow -> IndexWorkflow
-- ingest_web_workflow
-- ingest_pdf_workflow
-- curation_filter_workflow
-- graph_build_workflow
+
+**Key APIs (`data-ingestion-service`, default port 8017)**
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/v1/ingest` | Single source; `acq_mode=demo\|real`, optional `run_id` |
+| POST | `/v1/ingest/batch` | Parallel catalog/real batch under one `run_id` |
+| POST | `/v1/qa/demo-batch` | Isolated demo mocks only |
+| GET | `/v1/runs`, `/v1/runs/{id}` | Process folder + job stream |
+| GET | `/v1/runs/{id}/corpus` | **Partial** curated corpus for run |
+| GET | `/v1/runs/{id}/report` | Failure + partial success tracking report |
+| POST | `/v1/admin/cleanup` | Dry-run / delete runs + legacy lakehouse |
+| POST | `/v1/sources/discover-keywords` | EN/HI/MR keyword discovery |
+| POST | `/v1/sources/discover-online` | Category-based online discovery |
+
+**DAQ frontend:** `frontend/data-acquisition/` (Vite) — Command Center, Discover, Live Jobs, Corpus, QA Report; **REAL/DEMO** toggle; cleanup preview/reset.
+
+**Ops scripts (Windows):**
+
+```bat
+start-daq-backend.bat local   # API :8017
+start-daq-frontend.bat local  # UI  :5173
+start-daq-all.bat local
+cleanup-daq-data.bat preview real
+cleanup-daq-data.bat delete real
+```
+
+**Temporal Workflow Design (optional path):**
+```
+IngestionWorkflow -> CurationWorkflow -> IndexWorkflow
+- local IngestPipeline is default when Temporal unavailable
 ```
 
 **Lakehouse Tables:** `raw.documents`, `curated.documents`, `curated.chunks`, `curated.images`, `quarantine.records`, `manifests.datasets`, `manifests.models`, `telemetry.events`
 
-**Exit Criteria:** Temporal ingestion workflow runs end-to-end, data lake writes immutable objects, every record has provenance, PII redaction passes safety tests, lakehouse manifest queryable.
+**Exit Criteria (updated):**
+
+| Criterion | Status |
+|---|---|
+| End-to-end ingest (local pipeline) | **Done** |
+| Immutable raw + curated with checksum/provenance | **Done** |
+| PII / toxicity / relevance / dedup gates | **Done** |
+| Demo vs real isolation + run_id folders | **Done** |
+| EN/HI/MR discovery + trusted allow-list | **Done** |
+| Partial corpus + failure report for mixed runs | **Done** |
+| Cleanup/reset API + scripts | **Done** |
+| Temporal durable path default in prod | **Partial** (supported; local fallback common) |
+| Iceberg/Parquet lake (vs JSONL local) | **Planned** (JSONL local lakehouse today) |
 
 #### Phase 3 — Knowledge Graph and GraphRAG Plane
 
@@ -1126,7 +1352,7 @@ production -> offline-edge (edge export + resource check)
 | Milestone | Deliverable |
 |---|---|
 | **M0 — Foundation Ready** | Monorepo, Docker Compose, Kernel contracts, CI gates, golden folder |
-| **M1 — Data Lake Ready** | Temporal ingestion, lakehouse, PII redaction, provenance, quarantine |
+| **M1 — Data Lake Ready** | **As-built:** local IngestPipeline, run-scoped lakehouse, demo/real modes, EN/HI/MR discovery, PII/toxicity/relevance/dedup, provenance, quarantine, failure reports, cleanup. Temporal optional. Iceberg promotion remaining. |
 | **M2 — Knowledge Memory Ready** | Ontology, GraphRAG, Hybrid retrieval, citation enforcement |
 | **M3 — Agent Brain Ready** | LangGraph orchestrator, tools, safety engine, confidence gates, tracing |
 | **M4 — Model Factory Ready** | Tokenizer manifests, model manifests, LoRA/DPO pipeline, eval harness, ONNX export |
@@ -1172,6 +1398,9 @@ production -> offline-edge (edge export + resource check)
 - Deduplication measured
 - Dataset manifests immutable
 - Quarantine workflow operational
+- **Demo and real corpora isolated by `acq_mode` + `run_id`**
+- **Partial run success exposes curated corpus + failure report**
+- **Cleanup/reset can free disk without wiping the wrong mode**
 
 **AI Quality:**
 - Golden eval passes
@@ -1212,21 +1441,55 @@ production -> offline-edge (edge export + resource check)
 | Use human approval for high-risk graph changes | Chemical/dosage advice must be safe |
 | Use edge-cloud routing | Rural connectivity requires offline intelligence |
 | Use self-learning flywheel with gates | Autonomy must be safe and auditable |
+| **Demo vs real DAQ isolation** | Mock data must never contaminate real agri corpus |
+| **run_id-scoped lakehouse folders** | Process auditability + partial success corpus per run |
+| **EN/HI/MR keyword discovery** | Local-language first acquisition, not EN-only crawl |
+| **Object store auto→local fallback** | Local dev without MinIO must not spam connection errors |
+| **Failure reports for partial runs** | Track download/size/HTTP classes without discarding successes |
+| **Kustomize base + overlays** | local/prod/gpu separation without forking full manifests |
+| **Compose for data plane, K8s for scale** | Laptop vs cluster paths both first-class |
 
 ---
 
 ### 24. Immediate Next Actions
 
-1. Create the monorepo with `uv workspace`
-2. Add Docker Compose with Postgres, MinIO, Neo4j, Qdrant, Temporal, Redis
-3. Implement kernel contracts (Query, Response, Citation, Safety)
-4. Implement configuration validation (Pydantic Settings fail-loud)
-5. Implement CI pipeline (lint, type, unit, import-linter, safety eval)
-6. Create golden eval folder with 50 seed queries in en/hi/mr
-7. Build first Temporal ingestion workflow (web + PDF)
-8. Build first GraphRAG retrieval service
-9. Build first LangGraph agent with safety fallback
-10. Wire observability (OpenTelemetry + Prometheus + Grafana)
+#### 24.1 Completed foundation (do not re-scaffold)
+
+1. ~~Monorepo with uv workspace~~ (exists under `agrimind/`)
+2. ~~Docker Compose core services~~ (`docker-compose.yml`)
+3. ~~Kernel contracts + safety engine~~ (`packages/agrimind-kernel`)
+4. ~~Phase 2 local data acquisition plane~~ (see §26)
+5. ~~DAQ UI + Windows env launchers~~
+
+#### 24.2 Near-term (recommended order)
+
+1. Keep **REAL** DAQ runs healthy: refresh seed catalog URLs that 404; prefer `source_cache` for large PDFs
+2. Persist job registry beyond process memory (Postgres) so restart retains Live Jobs
+3. Promote JSONL lakehouse tables toward Iceberg/Parquet for scale analytics
+4. Wire Temporal as default for multi-day crawls; keep local pipeline for laptop demos
+5. Expand golden eval (en/hi/mr) and retrieval golden set against curated chunks
+6. GraphRAG over curated corpus from successful real runs
+7. LangGraph agent + safety fallback consuming GraphRAG
+8. Observability: OTEL traces for ingest stages + `run_id` attributes; compose stack for Grafana
+9. **Infra:** add `data-ingestion-service` to k8s base + PVC for `data/runs`
+10. **Infra:** optional `docker-compose.observability.yml` using `infra/observability/*`
+
+#### 24.3 Quick DAQ operator commands
+
+```bat
+REM From repo root AGRIMIND\
+start-daq-all.bat local
+REM API  http://127.0.0.1:8017/docs
+REM UI   http://127.0.0.1:5173
+
+cleanup-daq-data.bat preview real
+cleanup-daq-data.bat delete real
+```
+
+```powershell
+cd agrimind
+uv run python scripts/discover_agri_sources.py -k "cotton,soil health" --langs en,hi,mr
+```
 
 ---
 
@@ -1247,5 +1510,220 @@ The moat comes from the combination of:
 **Farmer safety first. Explainability always. Offline always works.**
 
 ---
-*Generated: AGRIMIND Implementation Plan v1.0 - 2026 Flagship Architecture*
+
+### 26. As-Built Data Acquisition Plane (Implementation Snapshot)
+
+> This section documents **what is implemented in the monorepo today**, not only aspirational design. Prefer these paths when operating or extending DAQ.
+
+#### 26.1 Architecture (as-built)
+
+```mermaid
+flowchart LR
+  UI[DAQ Frontend :5173] -->|/api proxy| API[data-ingestion-service :8017]
+  API --> Discover[Keyword + Online Discovery EN/HI/MR]
+  API --> Runs[Run Registry acq_mode + run_id]
+  API --> Pipe[IngestPipeline stages 1-13]
+  Discover --> Allow[Trusted allow-list + trust score]
+  Pipe --> Demo[data/runs/demo-*]
+  Pipe --> Real[data/runs/real-*]
+  Demo --> Tables[(JSONL tables + objects)]
+  Real --> Tables
+  API --> Report[Failure / partial report]
+  API --> Clean[POST /v1/admin/cleanup]
+```
+
+#### 26.2 Modes and isolation
+
+| Concern | DEMO | REAL |
+|---|---|---|
+| Purpose | Offline QA walkthrough | Production-like agri corpus |
+| Sources | `example.com` + inline content | Wikipedia / FAO / ICAR / USDA / Archive (allow-listed) |
+| API | `POST /v1/qa/demo-batch` | `POST /v1/ingest/batch` `acq_mode=real` |
+| Storage | `data/runs/demo-{ts}-{id}/` | `data/runs/real-{ts}-{id}/` |
+| Mixing | **Never** write into real lakehouse | Rejects demo URLs and inline mock content |
+
+#### 26.3 Package map
+
+| Package / service | Responsibility |
+|---|---|
+| `data_kernel.sources.discovery` | Allow-list (~70+ hosts), license/trust/provider inference, seed catalog en/hi/mr, access check |
+| `data_kernel.sources.keyword_discovery_service` | EN/HI/MR keyword expand, Wikipedia/Archive/OL/FAO search, PDF books, optional FastAPI factory |
+| `data_kernel.sources.online_discovery` | Category taxonomy discovery + access probes |
+| `data_kernel.sources.connectors` | Fetch web/pdf/wiki/rss; Archive metadata PDF resolve; large PDF partial extract |
+| `data_kernel.pipeline.ingest_pipeline` | Full stage pipeline + live progress callbacks |
+| `data_ingestion_service.runs` | `run_id` folders, process log, cleanup |
+| `data_ingestion_service.main` | REST API: ingest, batch, runs, corpus, report, cleanup |
+| `data_ingestion_service.qa` | Dashboard, enrich job, failure classification, run reports |
+| `frontend/data-acquisition` | Operator UI: REAL/DEMO, discover, live jobs, partial corpus, failure report download |
+
+#### 26.4 Operator runbook
+
+1. Start stack: `start-daq-all.bat local`
+2. Open UI → select **REAL mode** → **Real sources** (or Discover EN/HI/MR → ingest ready)
+3. Monitor **Live Jobs** for stage %; failures show class (`size_limit`, `timeout`, `http_not_found`, …)
+4. Open **Ready Corpus** with active `run_id` for **partial** curated documents/chunks
+5. Generate **failure report**: `GET /v1/runs/{run_id}/report` (also saved under `runs/.../reports/`)
+6. Free disk: `cleanup-daq-data.bat preview real` then `delete real` if intentional
+
+#### 26.5 Known limitations / next upgrades
+
+| Item | Notes |
+|---|---|
+| In-memory job registry | Restart clears Live Jobs memory; disk snapshots under `runs/*/jobs/` remain |
+| JSONL not Iceberg | Local lakehouse is JSONL + object files; analytics scale later |
+| Temporal | Registered workflows exist; laptop path uses local pipeline |
+| External source fragility | Some gov/Archive URLs 403/404/503 — discovery + failure report track this |
+| Object store | `OBJECT_STORE=local` default; MinIO optional via `auto` |
+
+#### 26.6 Related documents
+
+- `agrimind/docs/data-discovery-improvement-plan/SOURCE_DISCOVERY_GUIDE.md`
+- `agrimind/docs/data-discovery-improvement-plan/IMPLEMENTATION_STATUS.md`
+- `agrimind/MERGE_AND_IMPROVEMENT_PLAN.md`
+- `env/README.md` (DAQ env bat files)
+
+---
+
+### 27. As-Built Infrastructure & Deployment Map
+
+> **Why this section exists:** Infra was present in the repo (`agrimind/infra/`, compose files) but under-documented when §26 focused on DAQ. This is the full **deploy / observe / GPU** map with use-comments.
+
+#### 27.1 Infra folder structure (use comments)
+
+```text
+agrimind/infra/
+├── k8s/                                # use: Kubernetes deploy via Kustomize
+│   ├── base/                           # use: shared Deployments + Service + ConfigMap
+│   │   ├── namespace.yaml              # use: agrimind namespace
+│   │   ├── configmap.yaml              # use: non-secret env for services
+│   │   ├── services.yaml               # use: ClusterIP service definitions
+│   │   ├── gateway-deployment.yaml     # use: edge gateway pods
+│   │   ├── assistant-api-deployment.yaml
+│   │   ├── agent-orchestrator-deployment.yaml
+│   │   ├── memory-service-deployment.yaml
+│   │   ├── inference-service-deployment.yaml
+│   │   └── kustomization.yaml          # use: lists base resources + common labels
+│   └── overlays/
+│       ├── local/                      # use: low CPU/RAM patches for dev clusters
+│       │   ├── kustomization.yaml
+│       │   └── local-resources-patch.yaml
+│       ├── prod/                       # use: production kustomization (replicas/limits)
+│       │   └── kustomization.yaml
+│       └── gpu/                        # use: add GPU vLLM workload
+│           └── vllm-deployment.yaml
+│
+├── observability/                      # use: metrics, logs, traces, Grafana
+│   ├── prometheus.yml                  # use: scrape service metrics endpoints
+│   ├── otel-collector-config.yaml      # use: receive OTLP; export to Prometheus/Loki/…
+│   ├── loki-config.yaml                # use: log store config
+│   ├── datasources/datasources.yml     # use: Grafana auto-provision Prometheus/Loki
+│   ├── dashboards/                     # use: JSON dashboards loaded by Grafana
+│   │   ├── agrimind-system-overview.json  # use: CPU/mem/latency SLO view
+│   │   ├── agrimind-ai-quality.json       # use: retrieval/model quality panels
+│   │   ├── system-health.json
+│   │   ├── ai-quality.json
+│   │   └── dashboards.yml              # use: dashboard provider config
+│   └── alerts/agrimind-alerts.yml      # use: PrometheusRule-style alert definitions
+│
+└── vllm/
+    └── README.md                       # use: how to run GPU vLLM + wire inference-service
+```
+
+**Compose (sibling to `infra/`, under `agrimind/`):**
+
+| File | Use |
+|---|---|
+| `docker-compose.yml` | Local data plane: Postgres, MinIO, Neo4j, Qdrant, Redis, Temporal |
+| `docker-compose.vllm.yml` | Optional GPU inference server (OpenAI-compatible) |
+
+#### 27.2 Deploy environments flow
+
+```mermaid
+flowchart LR
+  Dev[Developer laptop] -->|docker compose up| LocalInfra[Compose: PG MinIO Neo4j Qdrant Redis Temporal]
+  Dev -->|start-daq-*.bat| DAQ[DAQ API + UI]
+  LocalInfra --> DevCluster[k8s overlay: local]
+  DevCluster -->|CI pass| Staging[k8s overlay: prod-like]
+  Staging -->|golden+safety eval| Canary[canary traffic]
+  Canary -->|SLO 24h| Prod[k8s overlay: prod]
+  Prod -->|optional| GPU[k8s overlay: gpu + vLLM]
+  GPU --> Inf[inference-service remote backend]
+```
+
+#### 27.3 Request / observability flow
+
+```mermaid
+flowchart TB
+  Client[Farmer / Operator client] --> GW[gateway-service]
+  GW --> Svc[assistant / orchestrator / memory / inference / DAQ]
+  Svc -->|OTLP| OTEL[otel-collector]
+  OTEL --> Prom[Prometheus]
+  OTEL --> Loki[Loki]
+  Prom --> Graf[Grafana dashboards]
+  Loki --> Graf
+  Prom --> Alerts[agrimind-alerts.yml]
+```
+
+#### 27.4 What is deployed where (as-built vs planned)
+
+| Component | Local compose | K8s base | Notes |
+|---|---|---|---|
+| Postgres | **Yes** | Planned/secret map | Feedback DSN, future job registry |
+| MinIO | **Yes** | Planned | DAQ often uses `OBJECT_STORE=local` on laptop |
+| Neo4j | **Yes** | Planned | GraphRAG |
+| Qdrant | **Yes** | Planned | Vector retrieval |
+| Redis | **Yes** | Planned | Semantic cache |
+| Temporal | **Yes** | Planned | Curation worker |
+| gateway / assistant / orchestrator / memory / inference | Dockerfiles exist; k8s base **Yes** | **Yes** | Scale path |
+| **data-ingestion-service** | **uv/bat local** | Not yet in k8s base | Add Deployment when DAQ goes cluster |
+| vLLM GPU | `docker-compose.vllm.yml` | `overlays/gpu` | Optional; needs NVIDIA |
+| Grafana/Prometheus/Loki | configs in `infra/observability` | wire via compose/k8s | Config present; full stack wiring ongoing |
+
+#### 27.5 Operator commands (infra)
+
+```bash
+# Local data plane
+cd agrimind
+docker compose up -d
+docker compose ps
+
+# Optional GPU inference
+docker compose -f docker-compose.vllm.yml up -d
+# see infra/vllm/README.md for VLLM_MODEL / smoke scripts
+
+# Kubernetes (from agrimind/)
+kubectl apply -k infra/k8s/overlays/local
+# kubectl apply -k infra/k8s/overlays/prod
+# kubectl apply -k infra/k8s/overlays/gpu
+```
+
+```bat
+REM DAQ app (does not replace compose; uses local FS store by default)
+start-daq-all.bat local
+```
+
+#### 27.6 Infra gaps (honest backlog)
+
+| Gap | Impact | Suggested next step |
+|---|---|---|
+| DAQ service missing from k8s base | Cluster cannot run discovery/ingest yet | Add `data-ingestion-deployment.yaml` + PVC for `data/runs` |
+| Observability configs not fully wired into compose | Dashboards may need manual Grafana import | Add `docker-compose.observability.yml` (Prometheus+Grafana+Loki+OTEL) |
+| No dedicated `infra/temporal/` manifests | Temporal only via compose image | K8s Temporal Helm or operator later |
+| Secrets still env-based | Not Vault/KMS | ExternalSecrets / SealedSecrets in prod overlay |
+| data-ingestion not in CI deploy matrix | Only unit-tested locally | Add service image + smoke job |
+
+#### 27.7 Mental model: three “planes”
+
+| Plane | Folders | Use when |
+|---|---|---|
+| **App plane** | `packages/`, `services/`, `workers/`, `frontend/` | Writing product code |
+| **Data plane** | `data/runs`, `data/source_cache`, lakehouse tables | Ingest, QA, cleanup |
+| **Infra plane** | `infra/`, `docker-compose*.yml`, `.github/` | Deploy, scale, observe, GPU |
+
+Do not put application business logic under `infra/`. Do not put cluster YAML under `packages/`.
+
+---
+
+*Generated: AGRIMIND Implementation Plan — living document*  
+*Last infra/repo map update: 2026-08-08*  
 *Owner: Principal AI Systems Architect*

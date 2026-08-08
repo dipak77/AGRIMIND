@@ -1,0 +1,115 @@
+# Optional GPU vLLM for AGRIMIND inference (OpenAI-compatible).
+# Requires NVIDIA device plugin (nvidia.com/gpu) on the cluster.
+# Weights are NOT bundled — container pulls from Hugging Face.
+#
+#   kubectl apply -f infra/k8s/overlays/gpu/vllm-deployment.yaml
+#
+# Wire inference-service:
+#   INFERENCE_MODE=remote
+#   VLLM_BASE_URL=http://vllm:8000/v1
+#   VLLM_API_KEY=EMPTY  (or match secret)
+#
+# Production: pin image tag, use larger VLLM_MODEL, set HF token secret for gated models.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agrimind
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm
+  namespace: agrimind
+  labels:
+    app: vllm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm
+  template:
+    metadata:
+      labels:
+        app: vllm
+    spec:
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:latest
+          args:
+            - "--model"
+            - "$(VLLM_MODEL)"
+            - "--host"
+            - "0.0.0.0"
+            - "--port"
+            - "8000"
+            - "--api-key"
+            - "$(VLLM_API_KEY)"
+            - "--dtype"
+            - "auto"
+            - "--max-model-len"
+            - "2048"
+            - "--gpu-memory-utilization"
+            - "0.90"
+          env:
+            - name: VLLM_MODEL
+              # Smoke default; override for production (e.g. Qwen/Qwen2.5-7B-Instruct)
+              value: "Qwen/Qwen2.5-0.5B-Instruct"
+            - name: VLLM_API_KEY
+              value: "EMPTY"
+            - name: HF_HOME
+              value: /root/.cache/huggingface
+            # Optional: secret for gated Hugging Face models
+            # - name: HUGGING_FACE_HUB_TOKEN
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: huggingface
+            #       key: token
+          ports:
+            - name: http
+              containerPort: 8000
+          resources:
+            requests:
+              cpu: "2"
+              memory: 8Gi
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "8"
+              memory: 24Gi
+              nvidia.com/gpu: "1"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            failureThreshold: 20
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            failureThreshold: 5
+          volumeMounts:
+            - name: hf-cache
+              mountPath: /root/.cache/huggingface
+      volumes:
+        - name: hf-cache
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm
+  namespace: agrimind
+  labels:
+    app: vllm
+spec:
+  selector:
+    app: vllm
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP

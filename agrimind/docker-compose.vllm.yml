@@ -1,0 +1,79 @@
+# GPU vLLM override — optional; does NOT run with plain `docker compose up`.
+#
+# Start:
+#   docker compose -f docker-compose.yml -f docker-compose.vllm.yml --profile gpu up -d vllm
+#
+# Windows (NVIDIA GPU + Docker Desktop GPU / nvidia-container-toolkit):
+#   docker compose -f docker-compose.yml -f docker-compose.vllm.yml --profile gpu up -d vllm
+#
+# Wire inference-service (host process):
+#   INFERENCE_MODE=remote
+#   VLLM_BASE_URL=http://localhost:8008/v1
+#   VLLM_API_KEY=EMPTY
+#
+# Docs: infra/vllm/README.md
+# Model weights are NOT bundled; image downloads from Hugging Face on first start.
+
+version: "3.9"
+
+services:
+  vllm:
+    profiles: ["gpu"]
+    # Pin when promoting to prod; :latest is fine for local smoke.
+    image: ${VLLM_IMAGE:-vllm/vllm-openai:latest}
+    container_name: agrimind-vllm
+    # Model: small default for smoke/docs. Production uses larger instruct models via VLLM_MODEL.
+    # Examples:
+    #   Qwen/Qwen2.5-0.5B-Instruct  (default smoke)
+    #   facebook/opt-125m           (tiny HF smoke)
+    #   Qwen/Qwen2.5-7B-Instruct    (production-ish local)
+    command:
+      - "--model"
+      - "${VLLM_MODEL:-Qwen/Qwen2.5-0.5B-Instruct}"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+      - "--api-key"
+      - "${VLLM_API_KEY:-EMPTY}"
+      - "--dtype"
+      - "${VLLM_DTYPE:-auto}"
+      - "--max-model-len"
+      - "${VLLM_MAX_MODEL_LEN:-2048}"
+      - "--gpu-memory-utilization"
+      - "${VLLM_GPU_MEMORY_UTILIZATION:-0.90}"
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN:-}
+      - HF_HOME=/root/.cache/huggingface
+      - VLLM_API_KEY=${VLLM_API_KEY:-EMPTY}
+    ports:
+      # Host 8008 → container OpenAI-compatible API on 8000
+      - "${VLLM_HOST_PORT:-8008}:8000"
+    volumes:
+      # Persist HF model cache across restarts (avoids re-download)
+      - vllm-hf-cache:/root/.cache/huggingface
+    # Compose GPU reservation (Swarm / Compose Spec)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    # Docker Engine non-Swarm GPU pass-through (Compose v2)
+    gpus: all
+    healthcheck:
+      # /health is lightweight; models endpoint may require auth depending on version
+      test:
+        [
+          "CMD-SHELL",
+          "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)\" || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 300s
+    restart: unless-stopped
+
+volumes:
+  vllm-hf-cache:

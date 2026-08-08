@@ -59,7 +59,27 @@ Thumbs.db
 # Editor / IDE
 .vscode/
 .idea/
+.vs/
 *.swp
 *.swo
 *~
 *.tmp
+
+# Node / JS
+node_modules/
+**/node_modules/
+
+# Data, Models, Corpus, Training, Runs
+agrimind/data/
+agrimind/runs/
+datasets/
+eval_private/
+*.onnx
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.parquet
+*.jsonl
+
+

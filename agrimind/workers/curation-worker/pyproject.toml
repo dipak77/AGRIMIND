@@ -8,10 +8,18 @@ dependencies = [
     "structlog>=24.0.0",
     "httpx>=0.27.0",
     "agrimind-kernel",
-    "agrimind-data-kernel",
+    "data-kernel",
+    "memory",
 ]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
 [tool.hatch.build.targets.wheel]
-packages = ["."]
+packages = ["curation_worker"]
+
+[tool.uv.sources]
+agrimind-kernel = { workspace = true }
+data-kernel = { workspace = true }
+memory = { workspace = true }

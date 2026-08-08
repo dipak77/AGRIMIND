@@ -68,27 +68,21 @@ class TestModelManifest:
 
 
 class TestInferenceContracts:
-    @pytest.mark.asyncio
-    async def test_inference_request_response(self):
+    def test_inference_request_response(self):
         request = InferenceRequest(
             model_id="test-model",
             prompt="What is the weather?",
-            max_tokens=100
+            max_tokens=100,
         )
         assert request.request_id is not None
         assert request.stream is False
-    
-    @pytest.mark.asyncio
-    async def test_inference_engine(self):
-        engine = InferenceEngine(
-            model_id="test-model",
-            endpoint="http://localhost:8000"
-        )
-        request = InferenceRequest(
-            model_id="test-model",
-            prompt="Test prompt"
-        )
-        response = await engine.generate(request)
+
+    def test_inference_engine(self):
+        import asyncio
+
+        engine = InferenceEngine(model_id="test-model", endpoint="http://localhost:8000")
+        request = InferenceRequest(model_id="test-model", prompt="Test prompt")
+        response = asyncio.run(engine.generate(request))
         assert response.model_id == "test-model"
         assert response.completion is not None
 

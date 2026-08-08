@@ -1,0 +1,33 @@
+name: Eval retrieval
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly Monday 06:00 UTC — offline golden retrieval (no Docker required)
+    - cron: "0 6 * * 1"
+
+jobs:
+  eval-retrieval:
+    runs-on: ubuntu-latest
+    env:
+      ENV: test
+      JWT_SECRET: local-dev-secret-key-min-32-chars-long!
+      OBJECT_STORE: local
+      LAKEHOUSE_ROOT: /tmp/agrimind-lake
+      MEMORY_BACKEND: stub
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: "3.12"
+
+      - name: Sync workspace
+        run: uv sync --all-packages --group dev
+
+      - name: Golden retrieval eval (p95 budget 300ms)
+        run: make eval-retrieval

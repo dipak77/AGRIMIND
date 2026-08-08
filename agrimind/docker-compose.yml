@@ -142,96 +142,67 @@ services:
     build:
       context: .
       dockerfile: services/gateway-service/Dockerfile
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    volumes: [.:/app]
     ports: ["8000:8000"]
     environment:
       - ENV=local
+      - ASSISTANT_API_URL=http://assistant-api:8001
+      - JWT_SECRET=local-dev-secret-key-min-32-chars-long!
       - REDIS_URL=redis://redis:6379/0
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-    depends_on: [redis, otel-collector]
+    depends_on: [assistant-api, redis]
 
   assistant-api:
     build:
       context: .
       dockerfile: services/assistant-api/Dockerfile
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
-    volumes: [.:/app]
     ports: ["8001:8001"]
     environment:
       - ENV=local
       - AGENT_ORCHESTRATOR_URL=http://agent-orchestrator:8002
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - JWT_SECRET=local-dev-secret-key-min-32-chars-long!
     depends_on: [agent-orchestrator]
 
   agent-orchestrator:
     build:
       context: .
       dockerfile: services/agent-orchestrator/Dockerfile
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
-    volumes: [.:/app]
     ports: ["8002:8002"]
     environment:
       - ENV=local
       - MEMORY_SERVICE_URL=http://memory-service:8003
       - INFERENCE_SERVICE_URL=http://inference-service:8004
-      - NEO4J_URI=bolt://neo4j:7687
-      - QDRANT_URL=http://qdrant:6333
+      - JWT_SECRET=local-dev-secret-key-min-32-chars-long!
     depends_on: [memory-service, inference-service]
 
   memory-service:
     build:
       context: .
       dockerfile: services/memory-service/Dockerfile
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8003 --reload
-    volumes: [.:/app]
     ports: ["8003:8003"]
     environment:
       - ENV=local
       - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=agrimind_graph_secret
       - QDRANT_URL=http://qdrant:6333
+      - QDRANT_COLLECTION=agrimind_chunks
+      - MEMORY_BACKEND=auto
+      - EMBED_DIM=384
+      - JWT_SECRET=local-dev-secret-key-min-32-chars-long!
     depends_on: [neo4j, qdrant]
 
   inference-service:
     build:
       context: .
       dockerfile: services/inference-service/Dockerfile
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8004 --reload
-    volumes: [.:/app]
     ports: ["8004:8004"]
     environment:
       - ENV=local
       - MODEL_REGISTRY_PATH=s3://agrimind-models
-      - MINIO_ENDPOINT=http://minio:9000
+      - JWT_SECRET=local-dev-secret-key-min-32-chars-long!
     depends_on: [minio]
 
-  # ---------------------------------------------------------------------------
-  # WORKERS
-  # ---------------------------------------------------------------------------
-  curation-worker:
-    build:
-      context: .
-      dockerfile: workers/curation-worker/Dockerfile
-    command: python -m app.worker
-    volumes: [.:/app]
-    environment:
-      - ENV=local
-      - TEMPORAL_ADDRESS=temporal:7233
-      - MINIO_ENDPOINT=http://minio:9000
-      - POSTGRES_DSN=postgresql+asyncpg://agrimind:agrimind_secret_123@postgres:5432/agrimind
-    depends_on: [temporal, minio, postgres]
-
-  training-orchestrator:
-    build:
-      context: .
-      dockerfile: workers/training-orchestrator/Dockerfile
-    command: python -m app.worker
-    volumes: [.:/app]
-    environment:
-      - ENV=local
-      - TEMPORAL_ADDRESS=temporal:7233
-      - MINIO_ENDPOINT=http://minio:9000
-    depends_on: [temporal, minio]
+  # Workers: enable when Dockerfiles + Temporal activities are production-ready
+  # curation-worker / training-orchestrator intentionally omitted from default compose
 
 volumes:
   pgdata:

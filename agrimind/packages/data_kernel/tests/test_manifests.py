@@ -3,6 +3,8 @@
 from datetime import UTC, datetime
 
 import pytest
+from pydantic import HttpUrl
+
 from data_kernel.manifests import (
     DatasetManifest,
     LicenseType,
@@ -10,7 +12,6 @@ from data_kernel.manifests import (
     SourceMetadata,
     TokenizerManifest,
 )
-from pydantic import HttpUrl
 
 
 class TestLicenseType:

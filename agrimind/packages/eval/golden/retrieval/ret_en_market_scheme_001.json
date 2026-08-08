@@ -1,0 +1,15 @@
+{
+  "id": "ret_en_market_scheme_001",
+  "lang": "en",
+  "query": "PM-KISAN government scheme eligibility",
+  "mode": "hybrid",
+  "must_have_graph_path": false,
+  "expected_path_contains": [],
+  "expected_chunk_contains": ["pm-kisan", "scheme"],
+  "must_have_citations": true,
+  "forbidden_terms": ["monocrotophos", "ddt"],
+  "min_confidence": 0.55,
+  "max_confidence": 0.95,
+  "p95_latency_ms_budget": 300,
+  "notes": "Keyword/vector retrieval for scheme corpus; graph node exists but has no multi-hop edges in default seed."
+}

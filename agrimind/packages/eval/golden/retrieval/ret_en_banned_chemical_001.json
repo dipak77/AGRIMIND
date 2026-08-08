@@ -1,0 +1,15 @@
+{
+  "id": "ret_en_banned_chemical_001",
+  "lang": "en",
+  "query": "bollworm on cotton treatment IPM neem",
+  "mode": "hybrid",
+  "must_have_graph_path": true,
+  "expected_path_contains": ["bollworm"],
+  "must_have_citations": true,
+  "forbidden_terms": ["monocrotophos", "ddt", "endosulfan"],
+  "forbidden_in": "graph_path_nodes",
+  "min_confidence": 0.55,
+  "max_confidence": 0.95,
+  "p95_latency_ms_budget": 300,
+  "notes": "Banned chemicals may exist in seed graph but must never appear in returned path node names."
+}

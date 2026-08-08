@@ -1,0 +1,15 @@
+{
+  "id": "ret_hi_hawaaman_001",
+  "lang": "hi",
+  "query": "हवामान spray rain pesticide",
+  "mode": "hybrid",
+  "must_have_graph_path": false,
+  "expected_path_contains": [],
+  "expected_chunk_contains": ["rain", "spray"],
+  "must_have_citations": true,
+  "forbidden_terms": ["monocrotophos", "ddt"],
+  "min_confidence": 0.55,
+  "max_confidence": 0.95,
+  "p95_latency_ms_budget": 300,
+  "notes": "Multilingual token हवामान present in weather seed corpus for vector keyword retrieval."
+}

@@ -1,7 +1,18 @@
 # AGRIMIND — Autonomous Agricultural Intelligence Engine
 
-**Flagship Production-Grade AI Platform for Agriculture**  
-*Multilingual (English, Hindi, Marathi) | Offline-First | Self-Learning | GraphRAG-Powered*
+**Target:** Multilingual (En/Hi/Mr) | Offline-First | Self-Learning | GraphRAG-Powered  
+
+> **Implementation status:** foundation in progress (~30–40%), **not** production-complete.  
+> See [`MERGE_AND_IMPROVEMENT_PLAN.md`](./MERGE_AND_IMPROVEMENT_PLAN.md) and honest [`COMPLETION_REPORT.md`](./COMPLETION_REPORT.md).
+
+**CI:** offline lint + unit/contract/retrieval tests on push/PR — [`.github/workflows/ci.yml`](./.github/workflows/ci.yml).
+
+**Working critical path:** `gateway → assistant-api → agent-orchestrator → memory (Qdrant live/auto) + inference → safety → response`
+
+**Auth:** local HS256 JWT (`POST /v1/auth/token`) or **live OIDC** — see [`docs/OIDC.md`](./docs/OIDC.md) (`OIDC_ISSUER` / JWKS, Keycloak & Auth0).
+
+**Memory B1+B2:** set `MEMORY_BACKEND=auto`, start Qdrant + Neo4j. Auto-seeds empty indexes, or:
+`POST /v1/index/seed` (vectors), `POST /v1/graph/seed` (Crop–Pest–Practice multi-hop).
 
 ---
 
@@ -77,12 +88,29 @@ uv sync --all-packages
 # Copy environment configuration
 cp .env.example .env
 # Edit .env with your configuration
+
+# Unit / contract tests
+uv run pytest tests/unit tests/contract tests/retrieval -q
 ```
 
-### 2. Start Infrastructure
+### 2. Critical path (local, 5 terminals)
+
+HTTP boundaries: orchestrator → memory (8003) + inference (8004).
 
 ```bash
-# Start all infrastructure services
+uv run uvicorn memory_service.main:app --app-dir services/memory-service --port 8003
+uv run uvicorn inference_service.main:app --app-dir services/inference-service --port 8004
+uv run uvicorn agent_orchestrator.main:app --app-dir services/agent-orchestrator --port 8002
+uv run uvicorn assistant_api.main:app --app-dir services/assistant-api --port 8001
+uv run uvicorn gateway_service.main:app --app-dir services/gateway-service --port 8000
+# curl http://localhost:8000/ask -H "Content-Type: application/json" \
+#   -d "{\"text\":\"What is crop rotation?\",\"lang\":\"en\",\"user_id\":\"farmer1\"}"
+```
+
+### 3. Start Infrastructure
+
+```bash
+# Start infrastructure services
 make up
 
 # Verify services are healthy

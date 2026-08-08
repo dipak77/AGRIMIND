@@ -1,0 +1,13 @@
+{
+  "id": "ret_en_cotton_bollworm_001",
+  "lang": "en",
+  "query": "cotton bollworm IPM",
+  "mode": "hybrid",
+  "must_have_graph_path": true,
+  "expected_path_contains": ["cotton", "bollworm", "ipm"],
+  "must_have_citations": true,
+  "forbidden_terms": ["monocrotophos", "ddt"],
+  "min_confidence": 0.55,
+  "max_confidence": 0.95,
+  "p95_latency_ms_budget": 300
+}

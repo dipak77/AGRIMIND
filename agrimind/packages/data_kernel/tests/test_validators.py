@@ -1,5 +1,6 @@
 """Tests for source validation: allow-list, license, and robots.txt."""
 import pytest
+
 from data_kernel.pipeline.validators import (
     LicenseType,
     SourceValidator,

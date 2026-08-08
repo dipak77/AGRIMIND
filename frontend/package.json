@@ -1,0 +1,14 @@
+{
+  "name": "agrimind-frontend",
+  "private": true,
+  "version": "0.2.0",
+  "description": "AGRIMIND frontend apps",
+  "workspaces": [
+    "data-acquisition"
+  ],
+  "scripts": {
+    "dev:daq": "npm run dev -w data-acquisition",
+    "build:daq": "npm run build -w data-acquisition",
+    "preview:daq": "npm run preview -w data-acquisition"
+  }
+}

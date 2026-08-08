@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+# Offline-capable only — no Docker Neo4j/Qdrant/Temporal services.
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    env:
+      ENV: test
+      JWT_SECRET: local-dev-secret-key-min-32-chars-long!
+      OBJECT_STORE: local
+      LAKEHOUSE_ROOT: /tmp/agrimind-lake
+      MEMORY_BACKEND: stub
+      AUTH_REQUIRED: "false"
+      OTEL_SDK_DISABLED: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: "3.12"
+
+      - name: Sync workspace
+        run: uv sync --all-packages --group dev
+
+      - name: Lint
+        # Scoped to packages + services + tests that matter for the critical path.
+        # Ignores: RUF012 (mutable class defaults), B017 (pytest.raises), B008 (FastAPI File/Depends).
+        run: >
+          uv run ruff check
+          packages/agrimind-kernel
+          packages/agents
+          packages/memory
+          packages/data_kernel
+          services
+          tests
+          --ignore RUF012,B017,B008
+
+      - name: Unit / contract / retrieval tests
+        run: uv run pytest tests/unit tests/contract tests/retrieval -q --tb=short
+
+      - name: Load / SLO checks
+        run: uv run pytest tests/load -q --tb=short

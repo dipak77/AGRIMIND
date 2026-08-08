@@ -1,11 +1,19 @@
 [project]
 name = "agrimind-kernel"
 version = "0.1.0"
-description = "Core contracts, configuration, and safety primitives for AGRIMIND"
-requires-python = ">=3.11"
+description = "Canonical kernel: contracts, config, safety, telemetry, security (zero upward deps)"
+requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
+    "structlog>=24.0",
+    "pyjwt[crypto]>=2.8.0",
+    "cryptography>=42.0.0",
+    "httpx>=0.27.0",
+    "fastapi>=0.115.0",
+    "psycopg[binary]>=3.1",
+    # OTEL optional at runtime; install for real export:
+    # opentelemetry-api, opentelemetry-sdk, opentelemetry-exporter-otlp
 ]
 
 [build-system]
@@ -13,4 +21,16 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/agrimind_kernel"]
+packages = ["agrimind_kernel"]
+
+# Ship SQL schema with the package for ensure_schema()
+[tool.hatch.build.targets.wheel.force-include]
+"agrimind_kernel/feedback/schema.sql" = "agrimind_kernel/feedback/schema.sql"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true

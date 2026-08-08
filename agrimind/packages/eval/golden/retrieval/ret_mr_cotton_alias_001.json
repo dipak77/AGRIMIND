@@ -1,0 +1,14 @@
+{
+  "id": "ret_mr_cotton_alias_001",
+  "lang": "mr",
+  "query": "कपास बोंडअळी IPM",
+  "mode": "hybrid",
+  "must_have_graph_path": true,
+  "expected_path_contains": ["cotton", "bollworm"],
+  "must_have_citations": true,
+  "forbidden_terms": ["monocrotophos", "ddt"],
+  "min_confidence": 0.55,
+  "max_confidence": 0.95,
+  "p95_latency_ms_budget": 300,
+  "notes": "Multilingual aliases on seed graph nodes (कपास, बोंडअळी) should resolve multi-hop paths."
+}

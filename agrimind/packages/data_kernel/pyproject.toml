@@ -8,6 +8,9 @@ dependencies = [
     "pydantic-settings>=2.0",
     "requests>=2.31.0",
     "urllib3>=2.0.0",
+    "minio>=7.2.0",
+    "pypdf>=4.0.0",
+    "feedparser>=6.0.0",
 ]
 
 [build-system]

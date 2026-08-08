@@ -1,0 +1,51 @@
+# KrishiMini-20M — canonical first foundation model contract
+# Source of truth for architecture factory validation (P0.4)
+model_family: krishimini
+model_id: krishimini-20m
+target_parameters: 20000000
+parameter_budget:
+  min: 18000000
+  max: 22000000
+  note: "Fail build if total_parameters outside [min, max] after counting"
+
+architecture:
+  type: decoder_only_transformer
+  layers: 10
+  hidden_size: 384
+  attention_heads: 6
+  kv_heads: 2
+  head_dim: 64
+  ffn_hidden_size: 1024
+  activation: swiglu
+  normalization: rmsnorm
+  positional_encoding: rope
+  tie_embeddings: true
+  bias: false
+
+tokenizer:
+  vocab_size: 16000
+  candidates: [12000, 16000, 24000]
+  initial_candidate: 16000
+  languages: [en, hi, mr]
+  normalization: NFKC
+
+training:
+  mode: scratch
+  base_checkpoint: null
+  context_length: 1024
+  max_session_minutes: 60
+  checkpoint_interval_minutes: 10
+  checkpoint_interval_tokens: 1000000
+  language_mix:
+    hi: 0.35
+    mr: 0.35
+    en: 0.30
+
+curriculum:
+  stages:
+    - language_foundation
+    - agriculture_foundation
+    - specialized_agriculture
+    - reasoning
+    - instruction_sft
+    - preference_safety
