@@ -27,7 +27,7 @@ $env:OBJECT_STORE = "local"
 $env:LAKEHOUSE_ROOT = "data/lakehouse"
 $env:INDEX_ON_INGEST = if ($env:INDEX_ON_INGEST) { $env:INDEX_ON_INGEST } else { "false" }
 $env:INGEST_WORKERS = "$Workers"
-$env:SKIP_ROBOTS = if ($env:SKIP_ROBOTS) { $env:SKIP_ROBOTS } else { "true" }
+$env:SKIP_ROBOTS = if ($env:SKIP_ROBOTS) { $env:SKIP_ROBOTS } else { "false" }
 
 $base = "http://127.0.0.1:$Port"
 

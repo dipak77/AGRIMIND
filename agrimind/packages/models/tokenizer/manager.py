@@ -71,8 +71,8 @@ class TokenizerManager:
         checksum = hashlib.sha256(data).hexdigest()
         manifest = TokenizerManifest(
             tokenizer_id=tid,
-            vocab_size=64000,
-            model_family="agrimind",
+            vocab_size=16000,
+            model_family="krishimini",
             checksum=checksum,
             languages=["en", "hi", "mr"],
         )

@@ -101,7 +101,74 @@ def load_config(path: str | Path | None = None) -> KrishiMiniConfig:
                     ffn_hidden_size=1024,
                 )
             )
-    import yaml
-
-    data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    text = Path(path).read_text(encoding="utf-8")
+    try:
+        import yaml
+        data = yaml.safe_load(text)
+    except ImportError:
+        data = _parse_simple_yaml(text)
     return KrishiMiniConfig.model_validate(data)
+
+
+def _parse_simple_yaml(text: str) -> dict[str, Any]:
+    """Fallback simple YAML parser when PyYAML is not installed."""
+    import re
+    result: dict[str, Any] = {}
+    stack: list[tuple[int, dict[str, Any] | list[Any]]] = [(0, result)]
+
+    lines = text.splitlines()
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip())
+
+        while len(stack) > 1 and stack[-1][0] > indent:
+            stack.pop()
+
+        current_container = stack[-1][1]
+
+        if stripped.startswith("- "):
+            val_str = stripped[2:].strip()
+            val = _parse_yaml_scalar(val_str)
+            if isinstance(current_container, list):
+                current_container.append(val)
+            elif isinstance(current_container, dict):
+                # convert dictionary key into list if needed
+                pass
+        elif ":" in stripped:
+            key, val_str = stripped.split(":", 1)
+            key = key.strip()
+            val_str = val_str.strip()
+
+            if not val_str:
+                # new nested dict
+                new_dict: dict[str, Any] = {}
+                if isinstance(current_container, dict):
+                    current_container[key] = new_dict
+                stack.append((indent + 2, new_dict))
+            else:
+                val = _parse_yaml_scalar(val_str)
+                if isinstance(current_container, dict):
+                    current_container[key] = val
+    return result
+
+
+def _parse_yaml_scalar(val_str: str) -> Any:
+    val_lower = val_str.lower()
+    if val_lower in ("true", "yes", "on"):
+        return True
+    if val_lower in ("false", "no", "off"):
+        return False
+    if val_lower in ("null", "none", "~", ""):
+        return None
+    if val_str.startswith("[") and val_str.endswith("]"):
+        items = [i.strip() for i in val_str[1:-1].split(",") if i.strip()]
+        return [_parse_yaml_scalar(i) for i in items]
+    try:
+        if "." in val_str:
+            return float(val_str)
+        return int(val_str)
+    except ValueError:
+        return val_str.strip("\"'")
+

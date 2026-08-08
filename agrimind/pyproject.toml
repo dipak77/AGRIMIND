@@ -67,6 +67,7 @@ pythonpath = [
     "packages/eval",
     "packages/data_kernel",
     "packages/models",
+    "packages/foundation_model",
     "workers/curation-worker",
     "services/data-ingestion-service",
     "services/data-ingestion-service/data_ingestion_service",

@@ -527,11 +527,18 @@ class IngestPipeline:
         }
 
     def _robots_stage(self, req: IngestRequest) -> dict[str, Any]:
+        profile = os.getenv("PROFILE", os.getenv("ENVIRONMENT", "dev")).strip().lower()
+        skip_env = os.getenv("SKIP_ROBOTS", "").strip().lower() in ("1", "true", "yes", "on")
+        
+        if skip_env and profile in ("production", "prod"):
+            raise ValueError("Production acquisition profile forbids SKIP_ROBOTS bypass (P0.5).")
+
         if req.skip_robots or req.content is not None or req.content_bytes is not None:
             return {"allowed": True, "skipped": True}
-        # Optional hard skip for offline / flaky gov sites
-        if os.getenv("SKIP_ROBOTS", "").strip().lower() in ("1", "true", "yes", "on"):
-            return {"allowed": True, "skipped": True, "reason": "SKIP_ROBOTS"}
+        
+        if skip_env:
+            logger.warning("SKIP_ROBOTS bypass active; allowed ONLY in local/test profile", profile=profile)
+            return {"allowed": True, "skipped": True, "reason": "SKIP_ROBOTS", "profile": profile}
         try:
             from data_kernel.pipeline.validators import LicenseType, SourceValidator
 
