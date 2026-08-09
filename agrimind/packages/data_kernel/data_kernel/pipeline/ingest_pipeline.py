@@ -537,7 +537,7 @@ class IngestPipeline:
             return {"allowed": True, "skipped": True}
         
         if skip_env:
-            logger.warning("SKIP_ROBOTS bypass active; allowed ONLY in local/test profile", profile=profile)
+            logger.warning("SKIP_ROBOTS bypass active; allowed ONLY in local/test profile (profile=%s)", profile)
             return {"allowed": True, "skipped": True, "reason": "SKIP_ROBOTS", "profile": profile}
         try:
             from data_kernel.pipeline.validators import LicenseType, SourceValidator
